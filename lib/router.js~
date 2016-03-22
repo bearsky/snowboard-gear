@@ -1,0 +1,226 @@
+Router.configure({
+	layoutTemplate: 'layout',
+	notFoundTemplate: '404page'	
+});
+
+var urlToTemplate = function (urlName) {
+	if (!(typeof urlName === 'string' || urlName instanceof String)) {
+		console.error('ERROR: String type parameter required');
+		return '';
+	}
+	var arr = urlName.split('-');
+	arr = arr.map(function(item, i) {
+  		return (i == 0) ? item : item.charAt(0).toUpperCase() + item.slice(1);
+	});
+	urlName = arr.join('');
+	return urlName;
+};
+
+Router.route('avtobusni-kvytky/:name?', function() {
+	var name = this.params.name,
+		 defaultName	= 'avtobusni-kvytky'
+	;
+	var checkName = name || defaultName;
+	
+	this.render('bannerBus', {to: 'slider'});
+	this.render(urlToTemplate(checkName));
+},{
+	page:'avtobusni-kvytky'
+});
+
+Router.route('zaliznychni-kvytky/:name?', function() {
+	var name = this.params.name,
+		 defaultName	= 'zaliznychni-kvytky';
+	var checkName = name || defaultName;
+
+	this.render('bannerTrain', {to: 'slider'});
+	this.render(urlToTemplate(checkName));
+},{
+	page:'zaliznychni-kvytky'
+});
+
+var aviaKvytkyToGo = function () {
+   Router.go('/avia-kvytky/regulyarni-reisy/elektronnyi-avia-kvytok');
+};
+
+Router.route('home', {
+  path: '/',
+  onBeforeAction: aviaKvytkyToGo
+});
+
+Router.route('avia-kvytky/:name?/:_tab?', function() {
+	var	
+	params 		= this.params,
+	name 			= params.name,
+	tab 			= params._tab,
+	defaultName = 'regulyarni-reisy',
+	defaultTabs = {
+		'regulyarni-reisy': 'elektronnyi-avia-kvytok',
+		'charterni-reisy': 'vyloty-z-Polshi'
+	},
+	defaultTab = function(name) {
+		var dTab = false;
+		if(defaultTabs.hasOwnProperty(name)){dTab = defaultTabs[name]};
+		return dTab;
+	};
+
+	var checkName = name || defaultName;
+
+	this.render('slider', {to: 'slider'});	
+	this.render(urlToTemplate(checkName));
+	this.render((!tab && defaultTab(checkName)) ? defaultTab(checkName) : tab, {to: 'regReisyPage'});	
+	} ,{
+		page:'avia-kvytky'
+	});
+
+
+Router.route('pro-nas/:name?', function() {
+	var name 		= this.params.name,
+		 defaultName	= 'nasha-kompetencia'
+	;
+	var checkName = name || defaultName;
+
+	this.render('slider', {to: 'slider'});
+	this.render(urlToTemplate(checkName));
+},{
+	page:'pro-nas'
+});
+
+Router.route('agentstvam/:name?', function() {
+	var name = this.params.name,
+		 defaultName	= 'spivpracya'
+	;
+	var checkName = name || defaultName;
+
+	this.render('slider', {to: 'slider'});
+	this.render(urlToTemplate(checkName));
+},{
+	page:'agentstvam'
+});
+
+Router.route('korporatyvnym-klientam/:name?', function() {
+	var name = this.params.name,
+		 defaultName	= 'online-bronyuvannya'
+	;
+	var checkName = name || defaultName;
+
+	this.render('slider', {to: 'slider'});
+	this.render(urlToTemplate(checkName));
+},{
+	page:'korporatyvnym-klientam'
+});
+
+
+Router.route('/offers/:name', {
+	name: 'offer',
+	layoutTemplate: 'layoutOffers',
+	waitOn: function() {
+				Meteor.subscribe('special_offers');
+		return Meteor.subscribe('offers', this.params.name);
+	},
+	data: function(){		
+		return Offers.findOne({name: this.params.name});
+	}
+});
+
+Router.route('/special-offers/:name', {
+	name: 'specOffer',
+	layoutTemplate: 'layoutOffers',
+	waitOn: function() {
+				Meteor.subscribe('offers');
+		return Meteor.subscribe('special_offer', this.params.name);
+	},
+	data: function(){				
+		return SpecialOffers.findOne({name: this.params.name});
+	}
+});
+
+ Router.route('/admin', {
+ 	name: 'admin',
+ 	layoutTemplate: 'adminLayout'
+ });
+
+Router.route('/admin/offers', {
+	name: 'adminOffers',
+	layoutTemplate: 'adminLayout',
+	waitOn: function() {
+		return Meteor.subscribe('offers');
+	}
+});
+
+Router.route('/admin/offers/add', {
+	name: 'adminOffersAdd',
+	layoutTemplate: 'adminLayout'
+});
+
+Router.route('/admin/offers/edit/:_id?', {
+	name: 'adminOffersEdit',
+	layoutTemplate: 'adminLayout',
+	onBeforeAction: function() {
+		if (this.params._id) {
+			this.next();
+		} else {
+			this.redirect('adminOffers');
+		}
+	},
+	waitOn: function() {
+		return Meteor.subscribe('offers');
+	},
+	data: function(){
+		return Offers.findOne(this.params._id);
+	}
+});
+
+
+Router.route('/admin/special-offers', {
+	name: 'adminSpecialOffers',
+	layoutTemplate: 'adminLayout',
+	waitOn: function() {
+		return Meteor.subscribe('special_offers');
+	}
+});
+
+Router.route('/admin/special-offers/add', {
+	name: 'adminSpecialOffersAdd',
+	layoutTemplate: 'adminLayout'
+});
+
+Router.route('/admin/special-offers/edit/:_id?', {
+	name: 'adminSpecialOffersEdit',
+	layoutTemplate: 'adminLayout',
+	onBeforeAction: function() {
+		if (this.params._id) {
+			this.next();
+		} else {
+			this.redirect('adminSpecialOffers');
+		}
+	},
+	waitOn: function() {
+		return Meteor.subscribe('special_offers');
+	},
+	data: function(){
+		return SpecialOffers.findOne(this.params._id);
+	}
+});
+
+var requireLogin = function() {
+	if (! Meteor.user()) {
+		if (Meteor.loggingIn()) {
+			this.next()
+		}else{
+			this.layout('loginLayout');
+			this.render('login');
+		}
+	}else{
+		this.next();
+	}
+};
+
+Router.onBeforeAction(requireLogin,
+	{only: ['admin',
+			'adminOffers',
+			'adminOffersAdd',
+			'adminOffersEdit',
+			'adminSpecialOffers',
+			'adminSpecialOffersAdd',
+			'adminSpecialOffersEdit' ] });
